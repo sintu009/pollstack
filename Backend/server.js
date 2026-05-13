@@ -9,7 +9,10 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
+app.use(cors({ 
+  origin: process.env.CLIENT_URL || "*",
+  credentials: true 
+}));
 app.use(express.json());
 
 // Health check
@@ -27,8 +30,12 @@ setupWebSocket(server);
 // Start
 connectDB().then(() => {
   const PORT = process.env.PORT || 5000;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const wsProtocol = isProduction ? 'wss' : 'ws';
+  const host = isProduction ? 'pollstack-zadw.onrender.com' : 'localhost';
+  
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`WebSocket available at ws://localhost:${PORT}/ws`);
+    console.log(`WebSocket available at ${wsProtocol}://${host}/ws`);
   });
 });
