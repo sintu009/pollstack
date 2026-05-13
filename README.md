@@ -1,6 +1,6 @@
 Login Creds:
-livewest@gmail.com
-9876987617
+username : livewest@gmail.com
+password : 9876987617
 
 # PollStack
 
