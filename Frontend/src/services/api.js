@@ -1,4 +1,6 @@
-const API_BASE = `http://${window.location.hostname}:5000/api`;
+const IS_LOCALHOST = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ||
+  (IS_LOCALHOST ? `http://${window.location.hostname}:5000/api` : `${window.location.origin}/api`);
 
 function getHeaders() {
   const token = localStorage.getItem("token");
@@ -13,7 +15,9 @@ async function request(url, options = {}) {
   try {
     res = await fetch(`${API_BASE}${url}`, { ...options, headers: getHeaders() });
   } catch (err) {
-    throw new Error("Cannot connect to server. Make sure backend is running on port 5000.");
+    throw new Error(
+      "Cannot connect to server. Make sure the backend is running and set VITE_API_BASE_URL if the API is on a different host."
+    );
   }
 
   // Check if response is JSON

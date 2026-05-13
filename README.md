@@ -92,6 +92,11 @@ Required variable:
 
 - `VITE_GOOGLE_CLIENT_ID` - Google OAuth client ID used by React Google OAuth provider
 
+Optional variables:
+
+- `VITE_API_BASE_URL` - Frontend API URL if the backend runs on a different host than the frontend (defaults to `http://localhost:5000/api` during local development and same-origin `/api` in production)
+- `VITE_WS_BASE_URL` - WebSocket URL if the backend runs on a different host than the frontend
+
 ## API Overview
 
 ### Health Check

@@ -2,7 +2,10 @@ import { useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { setConnected, updateLiveData } from "../store/slices/liveSlice";
 
-const WS_URL = `ws://${window.location.hostname}:5000/ws`;
+const WS_PROTOCOL = window.location.protocol === "https:" ? "wss" : "ws";
+const IS_LOCALHOST = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const WS_URL = import.meta.env.VITE_WS_BASE_URL ||
+  (IS_LOCALHOST ? `${WS_PROTOCOL}://${window.location.hostname}:5000/ws` : `${WS_PROTOCOL}://${window.location.host}/ws`);
 
 export default function useWebSocket(pollId) {
   const dispatch = useDispatch();
@@ -43,7 +46,7 @@ export default function useWebSocket(pollId) {
             if (data.type !== "CONNECTED") {
               dispatch(updateLiveData(data));
             }
-          } catch {}
+          } catch { }
         };
 
         ws.onclose = () => {
