@@ -15,7 +15,7 @@ function setupWebSocket(server) {
   console.log("WebSocket server ready on /ws");
 
   wss.on("connection", (ws, req) => {
-    const url = new URL(req.url || "/", "http://localhost");
+    const url = new URL(req.url || "/", "https://pollstack-zadw.onrender.com");
     const pollId = url.searchParams.get("pollId");
 
     if (!pollId) {
