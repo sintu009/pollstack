@@ -9,8 +9,6 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String, default: null },
     avatar: { type: String, default: null },
     authProvider: { type: String, enum: ["local", "google"], default: "local" },
-    resetPasswordToken: { type: String, default: null },
-    resetPasswordExpiry: { type: Date, default: null },
   },
   { timestamps: true }
 );
