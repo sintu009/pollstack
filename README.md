@@ -1,7 +1,3 @@
-Login Creds:
-username : livewest@gmail.com
-password : 9876987617
-
 # PollStack
 
 PollStack is a full-stack polling and survey application with a React + Vite frontend and a Node.js + Express backend.
