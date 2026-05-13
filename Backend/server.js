@@ -9,8 +9,14 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://poll-stack.vercel.app',
+  'http://localhost:5173'
+].filter(Boolean);
+
 app.use(cors({ 
-  origin: process.env.CLIENT_URL || "*",
+  origin: allowedOrigins,
   credentials: true 
 }));
 app.use(express.json());
