@@ -1,6 +1,13 @@
-const { WebSocketServer } = require("ws");
+const { WebSocketServer, OPEN } = require("ws");
 
 const clients = new Map(); // pollId -> Set of ws connections
+
+function cleanupSocket(pollId, ws) {
+  const sockets = clients.get(pollId);
+  if (!sockets) return;
+  sockets.delete(ws);
+  if (sockets.size === 0) clients.delete(pollId);
+}
 
 function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: "/ws" });
@@ -8,7 +15,7 @@ function setupWebSocket(server) {
   console.log("WebSocket server ready on /ws");
 
   wss.on("connection", (ws, req) => {
-    const url = new URL(req.url, "http://localhost");
+    const url = new URL(req.url || "/", "http://localhost");
     const pollId = url.searchParams.get("pollId");
 
     if (!pollId) {
@@ -16,36 +23,44 @@ function setupWebSocket(server) {
       return;
     }
 
-    // Add to clients map
     if (!clients.has(pollId)) clients.set(pollId, new Set());
     clients.get(pollId).add(ws);
 
     console.log(`WS connected: pollId=${pollId}, total=${clients.get(pollId).size}`);
 
-    // Send confirmation
-    ws.send(JSON.stringify({ type: "CONNECTED", pollId }));
+    try {
+      ws.send(JSON.stringify({ type: "CONNECTED", pollId }));
+    } catch (err) {
+      console.warn("Failed to send WS confirmation:", err.message || err);
+    }
 
-    // Ping/pong keepalive
     ws.isAlive = true;
-    ws.on("pong", () => { ws.isAlive = true; });
-
-    ws.on("close", () => {
-      clients.get(pollId)?.delete(ws);
-      if (clients.get(pollId)?.size === 0) clients.delete(pollId);
-      console.log(`WS disconnected: pollId=${pollId}`);
+    ws.on("pong", () => {
+      ws.isAlive = true;
     });
 
-    ws.on("error", () => {
-      clients.get(pollId)?.delete(ws);
+    ws.on("close", () => {
+      cleanupSocket(pollId, ws);
+      console.log(`WS disconnected: pollId=${pollId}, remaining=${clients.get(pollId)?.size || 0}`);
+    });
+
+    ws.on("error", (err) => {
+      cleanupSocket(pollId, ws);
+      console.warn(`WS error for pollId=${pollId}:`, err.message || err);
     });
   });
 
-  // Keepalive interval - ping every 30s
+  wss.on("error", (err) => {
+    console.error("WebSocket server error:", err.message || err);
+  });
+
   const interval = setInterval(() => {
     wss.clients.forEach((ws) => {
-      if (!ws.isAlive) return ws.terminate();
+      if (!ws.isAlive) {
+        return ws.terminate();
+      }
       ws.isAlive = false;
-      ws.ping();
+      ws.ping(() => { });
     });
   }, 30000);
 
@@ -55,11 +70,23 @@ function setupWebSocket(server) {
 function broadcast(pollId, data) {
   const sockets = clients.get(pollId);
   if (!sockets || sockets.size === 0) return;
+
   const msg = JSON.stringify(data);
-  sockets.forEach((ws) => {
-    if (ws.readyState === 1) ws.send(msg);
-  });
-  console.log(`WS broadcast: pollId=${pollId}, clients=${sockets.size}, type=${data.type}`);
+  for (const ws of sockets) {
+    if (ws.readyState !== OPEN) {
+      cleanupSocket(pollId, ws);
+      continue;
+    }
+    try {
+      ws.send(msg);
+    } catch (err) {
+      console.warn(`WS broadcast failed for pollId=${pollId}:`, err.message || err);
+      cleanupSocket(pollId, ws);
+    }
+  }
+
+  const count = clients.get(pollId)?.size || 0;
+  console.log(`WS broadcast: pollId=${pollId}, clients=${count}, type=${data.type}`);
 }
 
 module.exports = { setupWebSocket, broadcast };
